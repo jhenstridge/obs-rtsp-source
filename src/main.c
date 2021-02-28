@@ -3,6 +3,19 @@
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
 
+void client_closed(GstRTSPClient *client) {
+    GstRTSPConnection *conn = gst_rtsp_client_get_connection(client);
+
+    g_message("Closed connection from %s", gst_rtsp_connection_get_ip(conn));
+}
+
+void client_connected(GstRTSPServer *server, GstRTSPClient *client) {
+    GstRTSPConnection *conn = gst_rtsp_client_get_connection(client);
+
+    g_signal_connect(client, "closed", G_CALLBACK(client_closed), NULL);
+    g_message("Received connection from %s", gst_rtsp_connection_get_ip(conn));
+}
+
 int main(int argc, char **argv) {
     g_autoptr(GMainLoop) main_loop = NULL;
     g_autoptr(GstRTSPServer) server = NULL;
@@ -13,6 +26,7 @@ int main(int argc, char **argv) {
 
     main_loop = g_main_loop_new(NULL, FALSE);
     server = gst_rtsp_server_new();
+    g_signal_connect(server, "client-connected", G_CALLBACK(client_connected), NULL);
 
     mounts = gst_rtsp_server_get_mount_points(server);
 
