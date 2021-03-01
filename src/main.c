@@ -33,9 +33,11 @@ int main(int argc, char **argv) {
     factory = gst_rtsp_media_factory_new();
     gst_rtsp_media_factory_set_launch(
         factory, "( "
-        "videotestsrc ! video/x-raw,format=(string)YUY2,width=1280,height=720,framerate=30/1 ! "
+//        "videotestsrc ! video/x-raw,format=(string)YUY2,width=1280,height=720,framerate=30/1 ! "
 //        "videoconvert ! rtpvrawpay name=pay0 pt=96 "
-        "jpegenc ! queue ! rtpjpegpay name=pay0 pt=26 "
+//        "jpegenc ! queue ! rtpjpegpay name=pay0 pt=26 "
+          "v4l2src device=/dev/video2 ! image/jpeg,width=1280,height=720,framerate=15/1 ! "
+          "queue ! rtpjpegpay name=pay0 pt=26 "
         ")");
 
     gst_rtsp_mount_points_add_factory(mounts, "/test", factory);
