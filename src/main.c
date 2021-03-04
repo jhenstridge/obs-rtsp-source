@@ -55,7 +55,7 @@ setup_streams(GstRTSPServer *server, Publisher *publisher,
             return FALSE;
 
         factory = gst_rtsp_media_factory_new();
-        launch = g_strjoin("( ", pipeline, " )", NULL);
+        launch = g_strconcat("( ", pipeline, " )", NULL);
         gst_rtsp_media_factory_set_launch(factory, launch);
         gst_rtsp_media_factory_set_shared(factory, TRUE);
 
