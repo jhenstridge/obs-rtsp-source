@@ -6,7 +6,7 @@
 #include "mdns-publish.h"
 
 #define DEFAULT_RTSP_PORT 8554
-#define DEFAULT_CONFIG_FILE "rtsp-server.conf"
+#define DEFAULT_CONFIG_FILE "rtsp-sender.conf"
 
 static gboolean
 parse_options(int *argc, char ***argv, int *port, GKeyFile **config,
