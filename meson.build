@@ -5,9 +5,13 @@ gst_rtsp_server_dep = dependency('gstreamer-rtsp-server-1.0')
 avahi_client_dep = dependency('avahi-client')
 avahi_glib_dep = dependency('avahi-glib')
 
+obs_dep = dependency('libobs')
+
 rtsp_deps = [
   gst_rtsp_dep, gst_rtsp_server_dep,
   avahi_client_dep, avahi_glib_dep
 ]
 
-subdir('src/sender')
+plugin_deps = [obs_dep]
+
+subdir('src')
