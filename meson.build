@@ -1,5 +1,6 @@
 project('rtsp', 'c', version: '0.1')
 
+glib_dep = dependency('glib-2.0')
 gst_rtsp_dep = dependency('gstreamer-rtsp-1.0')
 gst_rtsp_server_dep = dependency('gstreamer-rtsp-server-1.0')
 avahi_client_dep = dependency('avahi-client')
@@ -12,6 +13,6 @@ rtsp_deps = [
   avahi_client_dep, avahi_glib_dep
 ]
 
-plugin_deps = [obs_dep]
+plugin_deps = [glib_dep, obs_dep]
 
 subdir('src')

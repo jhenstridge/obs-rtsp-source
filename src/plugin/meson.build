@@ -3,5 +3,5 @@ shared_module('remote-source',
   'source.c',
   c_args: '-fvisibility=hidden',
   name_prefix: '',
-  dependency: plugin_deps,
+  dependencies: plugin_deps,
 )
