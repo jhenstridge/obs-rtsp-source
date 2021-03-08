@@ -26,7 +26,6 @@ remote_source_create(obs_data_t *settings, obs_source_t *source) {
     remote->rtsp_url = g_strdup("");
     remote->media_source = obs_source_create_private(
         "ffmpeg_source", NULL, NULL);
-    obs_source_add_active_child(remote->source, remote->media_source);
     remote_source_update(remote, settings);
 
     return remote;
@@ -110,7 +109,7 @@ remote_source_activate(void *user_data) {
     struct remote_source *remote = user_data;
 
     g_message("remote source activate");
-    obs_source_inc_active(remote->media_source);
+    obs_source_add_active_child(remote->source, remote->media_source);
 }
 
 static void
@@ -118,7 +117,7 @@ remote_source_deactivate(void *user_data) {
     struct remote_source *remote = user_data;
 
     g_message("remote source deactivate");
-    obs_source_dec_active(remote->media_source);
+    obs_source_remove_active_child(remote->source, remote->media_source);
 }
 
 static void
