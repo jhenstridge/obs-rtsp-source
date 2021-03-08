@@ -21,6 +21,16 @@ change from default are:
 * set "Network buffering" to 0 MB
 * set "Input" to the rtsp URL of the stream
 
+There is an in-development OBS plugin that automates configuring the
+media source as above.  Still to do is adding the mDNS support for
+discovering streams, and reconfiguring the source when the selected
+camera becomes available.
+
+As the OBS plugin also lets us know when the source is "active"
+(i.e. part of the current scene), it could also let us communicate
+this back to the sender.  In turn, that would allow for some kind of
+"tally light" feature.
+
 ## Pipelines
 
 The RTSP server is built on top of GStreamer and will use pipelines
