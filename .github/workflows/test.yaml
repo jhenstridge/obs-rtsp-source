@@ -1,0 +1,31 @@
+name: test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update
+          sudo apt-get install \
+            meson \
+            libglib2.0-dev \
+            libavahi-client-dev \
+            libavahi-glib-dev \
+            libgstrtspserver-1.0-dev \
+            libobs-dev
+
+      - name: Build
+        run: |
+          mkdir _build
+          meson _build
+          ninja -C _build
