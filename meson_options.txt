@@ -1,0 +1,4 @@
+option('obs-plugin',
+  type: 'boolean',
+  value: true,
+  description: 'Build the OBS plugin')
