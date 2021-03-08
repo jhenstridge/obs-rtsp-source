@@ -6,6 +6,7 @@ struct remote_source {
 
     // Settings
     char *rtsp_url;
+    bool hw_decode;
 
     obs_source_t *media_source;
 };
@@ -14,7 +15,7 @@ static void remote_source_update(void *user_data, obs_data_t *settings);
 
 static const char *
 remote_source_get_name(void *user_data) {
-    return "RemoteSource";
+    return "Remote Source";
 }
 
 static void *
@@ -25,6 +26,7 @@ remote_source_create(obs_data_t *settings, obs_source_t *source) {
     remote->rtsp_url = g_strdup("");
     remote->media_source = obs_source_create_private(
         "ffmpeg_source", NULL, NULL);
+    obs_source_add_active_child(remote->source, remote->media_source);
     remote_source_update(remote, settings);
 
     return remote;
@@ -34,6 +36,7 @@ static void
 remote_source_destroy(void *user_data) {
     struct remote_source *remote = user_data;
 
+    obs_source_remove(remote->media_source);
     g_clear_pointer(&remote->media_source, obs_source_release);
     g_clear_pointer(&remote->rtsp_url, g_free);
 
@@ -52,6 +55,8 @@ remote_source_get_properties(void *user_data) {
     obs_properties_set_flags(props, OBS_PROPERTIES_DEFER_UPDATE);
 
     obs_properties_add_text(props, "input", "Input", OBS_TEXT_DEFAULT);
+    obs_properties_add_bool(props, "hw_decode",
+                            "Use hardware decoding when available");
 
     return props;
 }
@@ -64,6 +69,7 @@ remote_source_update(void *user_data, obs_data_t *settings) {
     // Set RTSP URL from settings
     g_clear_pointer(&remote->rtsp_url, g_free);
     remote->rtsp_url = g_strdup(obs_data_get_string(settings, "input"));
+    remote->hw_decode = obs_data_get_bool(settings, "hw_decode");
 
     media_settings = obs_data_create();
     obs_data_set_bool(media_settings, "is_local_file", false);
@@ -76,11 +82,27 @@ remote_source_update(void *user_data, obs_data_t *settings) {
     obs_data_set_bool(media_settings, "clear_on_media_end", true);
     obs_data_set_bool(media_settings, "restart_on_activate", false);
     obs_data_set_bool(media_settings, "seekable", false);
-    obs_data_set_bool(media_settings, "hw_decode", true);
+    obs_data_set_bool(media_settings, "hw_decode", remote->hw_decode);
 
     obs_source_update(remote->media_source, media_settings);
 
     obs_data_release(media_settings);
+}
+
+static uint32_t
+remote_source_get_height(void *user_data)
+{
+    struct remote_source *remote = user_data;
+
+    return obs_source_get_height(remote->media_source);
+}
+
+static uint32_t
+remote_source_get_width(void *user_data)
+{
+    struct remote_source *remote = user_data;
+
+    return obs_source_get_width(remote->media_source);
 }
 
 static void
@@ -116,6 +138,13 @@ remote_source_enum_all_sources(void *user_data,
     struct remote_source *remote = user_data;
 
     enum_callback(remote->source, remote->media_source, param);
+}
+
+static void
+remote_source_video_render(void *user_data, gs_effect_t *effect) {
+    struct remote_source *remote = user_data;
+
+    obs_source_video_render(remote->media_source);
 }
 
 static bool
@@ -159,7 +188,7 @@ struct obs_source_info remote_source = {
     .id = "rtsp_remote_source",
     .type = OBS_SOURCE_TYPE_INPUT,
     .icon_type = OBS_ICON_TYPE_MEDIA,
-    .output_flags = (OBS_SOURCE_COMPOSITE |
+    .output_flags = (OBS_SOURCE_VIDEO | OBS_SOURCE_COMPOSITE |
                      OBS_SOURCE_DO_NOT_DUPLICATE),
 
     .get_name = remote_source_get_name,
@@ -170,10 +199,14 @@ struct obs_source_info remote_source = {
     .get_properties = remote_source_get_properties,
     .update = remote_source_update,
 
+    .get_width = remote_source_get_width,
+    .get_height = remote_source_get_height,
+
     .activate = remote_source_activate,
     .deactivate = remote_source_deactivate,
 
     .enum_active_sources = remote_source_enum_active_sources,
     .enum_all_sources = remote_source_enum_all_sources,
+    .video_render = remote_source_video_render,
     .audio_render = remote_source_audio_render,
 };
