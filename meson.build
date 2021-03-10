@@ -13,7 +13,7 @@ rtsp_deps = [
 
 if get_option('obs-plugin')
   obs_dep = dependency('libobs')
-  plugin_deps = [glib_dep, obs_dep]
+  plugin_deps = [glib_dep, avahi_client_dep, obs_dep]
 endif
 
 subdir('src')
