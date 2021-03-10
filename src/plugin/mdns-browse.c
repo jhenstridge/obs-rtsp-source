@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <avahi-client/client.h>
 #include <avahi-client/lookup.h>
+#include <avahi-common/malloc.h>
 #include <avahi-common/thread-watch.h>
 #include <avahi-common/error.h>
 
@@ -14,6 +15,7 @@ struct _Browser {
     AvahiClient *client;
     AvahiServiceBrowser *service_browser;
 
+    volatile gint counter;
     GHashTable *services;
 };
 
@@ -43,12 +45,12 @@ resolve_callback(AvahiServiceResolver *r,
             if (path_entry) {
                 avahi_string_list_get_pair(path_entry, NULL, &path, NULL);
             }
-
             rtsp_uri = g_strdup_printf("rtsp://%s:%u%s", host_name, port,
                                        path ? path : "/");
+            if (path) avahi_free(path);
+
             g_hash_table_insert(browser->services, g_strdup(name), rtsp_uri);
-            g_message("Found service '%s': %s", name, rtsp_uri);
-            // Increment counter
+            g_atomic_int_inc(&browser->counter);
         }
         break;
     }
@@ -83,8 +85,7 @@ browse_callback(AvahiServiceBrowser *b,
     case AVAHI_BROWSER_REMOVE:
         if (g_hash_table_lookup(browser->services, name)) {
             g_hash_table_remove(browser->services, name);
-            g_message("Removed service '%s'", name);
-            // increment counter
+            g_atomic_int_inc(&browser->counter);
         }
         break;
 
@@ -164,4 +165,52 @@ browser_free(Browser *browser) {
     g_clear_pointer(&browser->client, avahi_client_free);
     g_clear_pointer(&browser->poll, avahi_threaded_poll_free);
     g_free(browser);
+}
+
+gint
+browser_get_counter(Browser *browser) {
+    return g_atomic_int_get(&browser->counter);
+}
+
+char *
+browser_get_uri(Browser *browser, const char *name, gint *counter) {
+    char *rtsp_uri = NULL;
+
+    avahi_threaded_poll_lock(browser->poll);
+    rtsp_uri = g_strdup(g_hash_table_lookup(browser->services, name));
+    if (counter) {
+        *counter = g_atomic_int_get(&browser->counter);
+    }
+    avahi_threaded_poll_unlock(browser->poll);
+
+    return rtsp_uri;
+}
+
+static gint
+name_compare(gconstpointer a, gconstpointer b, void *user_data) {
+    const char *s1 = *(const char **)a;
+    const char *s2 = *(const char **)b;
+
+    return g_utf8_collate(s1, s2);
+}
+
+GStrv
+browser_get_available(Browser *browser) {
+    GStrv names = NULL;
+    GHashTableIter iter;
+    int i = 0;
+    const char *name;
+
+    avahi_threaded_poll_lock(browser->poll);
+    // Copy hash table keys to NULL terminated array
+    names = g_new0(char *, g_hash_table_size(browser->services) + 1);
+    g_hash_table_iter_init(&iter, browser->services);
+    while (g_hash_table_iter_next(&iter, (gpointer *)&name, NULL)) {
+        names[i++] = g_strdup(name);
+    }
+    avahi_threaded_poll_unlock(browser->poll);
+
+    g_qsort_with_data(names, i, sizeof(char *), name_compare, NULL);
+
+    return names;
 }

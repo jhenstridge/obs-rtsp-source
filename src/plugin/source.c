@@ -1,6 +1,10 @@
 #include "source.h"
 #include <glib.h>
 
+#include "mdns-browse.h"
+
+extern Browser *mdns_browser;
+
 struct remote_source {
     obs_source_t *source;
 
@@ -56,6 +60,12 @@ remote_source_get_properties(void *user_data) {
     obs_properties_add_text(props, "input", "Input", OBS_TEXT_DEFAULT);
     obs_properties_add_bool(props, "hw_decode",
                             "Use hardware decoding when available");
+
+    if (mdns_browser) {
+        g_auto(GStrv) names = browser_get_available(mdns_browser);
+        g_autofree char *joined = g_strjoinv(", ", names);
+        g_message("Available: %s", joined);
+    }
 
     return props;
 }
