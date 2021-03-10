@@ -81,9 +81,15 @@ register_services:
                  service->publisher->port, txt, NULL)) < 0) {
             if (ret == AVAHI_ERR_COLLISION)
                 goto collision;
-            g_warning(
-                "could not add service: %s",
-                avahi_strerror(avahi_client_errno(service->publisher->client)));
+            g_warning("could not add service: %s", avahi_strerror(ret));
+            return;
+        }
+
+        if ((ret = avahi_entry_group_add_service_subtype(
+                 service->group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, 0,
+                 service->name, "_rtsp._tcp", NULL,
+                 "_obs_source._sub._rtsp._tcp")) < 0) {
+            g_warning("could not add service subtype: %s", avahi_strerror(ret));
             return;
         }
 
