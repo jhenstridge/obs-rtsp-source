@@ -15,7 +15,7 @@ struct _Browser {
     AvahiClient *client;
     AvahiServiceBrowser *service_browser;
 
-    volatile gint counter;
+    volatile gint stamp;
     GHashTable *services;
 };
 
@@ -50,7 +50,7 @@ resolve_callback(AvahiServiceResolver *r,
             if (path) avahi_free(path);
 
             g_hash_table_insert(browser->services, g_strdup(name), rtsp_uri);
-            g_atomic_int_inc(&browser->counter);
+            g_atomic_int_inc(&browser->stamp);
         }
         break;
     }
@@ -85,7 +85,7 @@ browse_callback(AvahiServiceBrowser *b,
     case AVAHI_BROWSER_REMOVE:
         if (g_hash_table_lookup(browser->services, name)) {
             g_hash_table_remove(browser->services, name);
-            g_atomic_int_inc(&browser->counter);
+            g_atomic_int_inc(&browser->stamp);
         }
         break;
 
@@ -168,18 +168,18 @@ browser_free(Browser *browser) {
 }
 
 gint
-browser_get_counter(Browser *browser) {
-    return g_atomic_int_get(&browser->counter);
+browser_get_stamp(Browser *browser) {
+    return g_atomic_int_get(&browser->stamp);
 }
 
 char *
-browser_get_uri(Browser *browser, const char *name, gint *counter) {
+browser_get_uri(Browser *browser, const char *name, gint *stamp) {
     char *rtsp_uri = NULL;
 
     avahi_threaded_poll_lock(browser->poll);
     rtsp_uri = g_strdup(g_hash_table_lookup(browser->services, name));
-    if (counter) {
-        *counter = g_atomic_int_get(&browser->counter);
+    if (stamp) {
+        *stamp = g_atomic_int_get(&browser->stamp);
     }
     avahi_threaded_poll_unlock(browser->poll);
 

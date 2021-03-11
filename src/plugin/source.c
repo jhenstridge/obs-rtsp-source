@@ -9,8 +9,10 @@ struct remote_source {
     obs_source_t *source;
 
     // Settings
+    char *service_name;
     char *rtsp_url;
     bool hw_decode;
+    gint last_stamp;
 
     obs_source_t *media_source;
 };
@@ -27,7 +29,8 @@ remote_source_create(obs_data_t *settings, obs_source_t *source) {
     struct remote_source *remote = g_new0(struct remote_source, 1);
 
     remote->source = source;
-    remote->rtsp_url = g_strdup("");
+    remote->service_name = g_strdup("");
+    remote->rtsp_url = NULL;
     remote->media_source = obs_source_create_private(
         "ffmpeg_source", NULL, NULL);
     remote_source_update(remote, settings);
@@ -42,6 +45,7 @@ remote_source_destroy(void *user_data) {
     obs_source_remove(remote->media_source);
     g_clear_pointer(&remote->media_source, obs_source_release);
     g_clear_pointer(&remote->rtsp_url, g_free);
+    g_clear_pointer(&remote->service_name, g_free);
 
     g_free(remote);
 }
@@ -52,37 +56,48 @@ remote_source_get_defaults(obs_data_t *settings) {
 
 static obs_properties_t *
 remote_source_get_properties(void *user_data) {
+    struct remote_source *remote = user_data;
     obs_properties_t *props;
+    obs_property_t *service_list;
+    bool service_found = false;
 
     props = obs_properties_create();
     obs_properties_set_flags(props, OBS_PROPERTIES_DEFER_UPDATE);
 
-    obs_properties_add_text(props, "input", "Input", OBS_TEXT_DEFAULT);
-    obs_properties_add_bool(props, "hw_decode",
-                            "Use hardware decoding when available");
-
+    service_list = obs_properties_add_list(
+        props, "service_name", "Service",
+        OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     if (mdns_browser) {
         g_auto(GStrv) names = browser_get_available(mdns_browser);
-        g_autofree char *joined = g_strjoinv(", ", names);
-        g_message("Available: %s", joined);
+        int i;
+
+        for (i = 0; names[i] != NULL; i++) {
+            if (!g_strcmp0(remote->service_name, names[i])) {
+                service_found = true;
+            }
+            obs_property_list_add_string(service_list, names[i], names[i]);
+        }
     }
+    if (!service_found) {
+        size_t index = obs_property_list_add_string(
+            service_list, remote->service_name, remote->service_name);
+        obs_property_list_item_disable(service_list, index, true);
+    }
+
+    obs_properties_add_bool(props, "hw_decode",
+                            "Use hardware decoding when available");
 
     return props;
 }
 
 static void
-remote_source_update(void *user_data, obs_data_t *settings) {
-    struct remote_source *remote = user_data;
+remote_source_update_media_source(struct remote_source *remote) {
     obs_data_t *media_settings;
-
-    // Set RTSP URL from settings
-    g_clear_pointer(&remote->rtsp_url, g_free);
-    remote->rtsp_url = g_strdup(obs_data_get_string(settings, "input"));
-    remote->hw_decode = obs_data_get_bool(settings, "hw_decode");
 
     media_settings = obs_data_create();
     obs_data_set_bool(media_settings, "is_local_file", false);
-    obs_data_set_string(media_settings, "input", remote->rtsp_url);
+    obs_data_set_string(media_settings, "input",
+                        remote->rtsp_url ? remote->rtsp_url : "");
     obs_data_set_string(media_settings, "input_format", "");
     obs_data_set_int(media_settings, "reconnect_delay_sec", 10);
     obs_data_set_int(media_settings, "buffering_mb", 0);
@@ -96,6 +111,26 @@ remote_source_update(void *user_data, obs_data_t *settings) {
     obs_source_update(remote->media_source, media_settings);
 
     obs_data_release(media_settings);
+}
+
+static void
+remote_source_update(void *user_data, obs_data_t *settings) {
+    struct remote_source *remote = user_data;
+    g_autofree char *new_url = NULL;
+
+    // Set RTSP URL from settings
+    g_clear_pointer(&remote->service_name, g_free);
+    remote->service_name = g_strdup(obs_data_get_string(settings, "service_name"));
+    remote->hw_decode = obs_data_get_bool(settings, "hw_decode");
+
+    g_clear_pointer(&remote->rtsp_url, g_free);
+    if (mdns_browser) {
+        remote->rtsp_url = browser_get_uri(
+            mdns_browser, remote->service_name, &remote->last_stamp);
+    }
+    g_message("rtsp url for %s is %s", remote->service_name, remote->rtsp_url);
+
+    remote_source_update_media_source(remote);
 }
 
 static uint32_t
@@ -128,6 +163,33 @@ remote_source_deactivate(void *user_data) {
 
     g_message("remote source deactivate");
     obs_source_remove_active_child(remote->source, remote->media_source);
+}
+
+static void
+remote_source_video_tick(void *user_data, float seconds) {
+    struct remote_source *remote = user_data;
+    gint new_stamp;
+    g_autofree char *new_url = NULL;
+
+    if (!mdns_browser) {
+        return;
+    }
+
+    // Perform quick check to see if service browser state has changed
+    new_stamp = browser_get_stamp(mdns_browser);
+    if (new_stamp == remote->last_stamp) {
+        return;
+    }
+
+    // Is the new URL for our service different?
+    new_url = browser_get_uri(
+        mdns_browser, remote->service_name, &remote->last_stamp);
+    if (g_strcmp0(new_url, remote->rtsp_url) != 0) {
+        g_clear_pointer(&remote->rtsp_url, g_free);
+        remote->rtsp_url = g_steal_pointer(&new_url);
+        remote_source_update_media_source(remote);
+    }
+    obs_source_update_properties(remote->source);
 }
 
 static void
@@ -213,6 +275,8 @@ struct obs_source_info remote_source = {
 
     .activate = remote_source_activate,
     .deactivate = remote_source_deactivate,
+
+    .video_tick = remote_source_video_tick,
 
     .enum_active_sources = remote_source_enum_active_sources,
     .enum_all_sources = remote_source_enum_all_sources,
