@@ -105,7 +105,7 @@ client_callback(AvahiClient *c, AvahiClientState state, void *user_data) {
         g_clear_pointer(&browser->service_browser, avahi_service_browser_free);
         browser->service_browser = avahi_service_browser_new(
             c, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC,
-            "_obs_source._sub._rtsp._tcp", NULL, 0, browse_callback, browser);
+            "_obs-source._sub._rtsp._tcp", NULL, 0, browse_callback, browser);
         if (browser->service_browser == NULL) {
             g_warning("could not create service browser: %s",
                       avahi_strerror(avahi_client_errno(c)));

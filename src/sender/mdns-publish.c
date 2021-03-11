@@ -88,7 +88,7 @@ register_services:
         if ((ret = avahi_entry_group_add_service_subtype(
                  service->group, AVAHI_IF_UNSPEC, AVAHI_PROTO_UNSPEC, 0,
                  service->name, "_rtsp._tcp", NULL,
-                 "_obs_source._sub._rtsp._tcp")) < 0) {
+                 "_obs-source._sub._rtsp._tcp")) < 0) {
             g_warning("could not add service subtype: %s", avahi_strerror(ret));
             return;
         }
