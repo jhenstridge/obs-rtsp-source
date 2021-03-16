@@ -1,5 +1,5 @@
 executable('rtsp-sender',
   'main.c',
-  'mdns-publish.c',
+  'mdns-publisher.c',
   c_args: '-fvisibility=hidden',
   dependencies: rtsp_deps)

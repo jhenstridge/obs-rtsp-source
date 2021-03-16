@@ -1,4 +1,4 @@
-#include "mdns-publish.h"
+#include "mdns-publisher.h"
 
 #include <gio/gio.h>
 #include <avahi-glib/glib-malloc.h>

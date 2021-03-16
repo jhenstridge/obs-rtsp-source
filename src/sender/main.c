@@ -3,7 +3,7 @@
 #include <gst/gst.h>
 #include <gst/rtsp-server/rtsp-server.h>
 
-#include "mdns-publish.h"
+#include "mdns-publisher.h"
 
 #define DEFAULT_RTSP_PORT 8554
 #define DEFAULT_CONFIG_FILE "rtsp-sender.conf"
