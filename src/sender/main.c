@@ -35,7 +35,7 @@ parse_options(int *argc, char ***argv, int *port, GKeyFile **config,
 }
 
 static gboolean
-setup_streams(GstRTSPServer *server, Publisher *publisher,
+setup_streams(GstRTSPServer *server, MdnsPublisher *publisher,
               GKeyFile *config, GError **error) {
     g_autoptr(GstRTSPMountPoints) mounts = NULL;
     g_auto(GStrv) groups = NULL;
@@ -64,7 +64,7 @@ setup_streams(GstRTSPServer *server, Publisher *publisher,
 
         publish = g_key_file_get_string(config, groups[i], "publish", NULL);
         if (publish) {
-            publisher_add_stream(publisher, groups[i], publish);
+            mdns_publisher_add_stream(publisher, groups[i], publish);
         }
     }
 
@@ -91,7 +91,7 @@ main(int argc, char **argv) {
     g_autoptr(GError) error = NULL;
     g_autoptr(GMainLoop) main_loop = NULL;
     g_autoptr(GstRTSPServer) server = NULL;
-    g_autoptr(Publisher) publisher = NULL;
+    g_autoptr(MdnsPublisher) publisher = NULL;
     g_autoptr(GKeyFile) config = NULL;
     int port;
     g_autofree char *port_str = NULL;
@@ -107,7 +107,7 @@ main(int argc, char **argv) {
     g_object_set(server, "service", port_str, NULL);
     g_signal_connect(server, "client-connected", G_CALLBACK(client_connected), NULL);
 
-    publisher = publisher_new(port, &error);
+    publisher = mdns_publisher_new(port, &error);
     if (!publisher) {
         g_printerr("Error setting up Avahi publisher: %s\n", error->message);
         return 1;

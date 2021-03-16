@@ -9,7 +9,7 @@
 #include <avahi-common/simple-watch.h>
 #include <avahi-common/error.h>
 
-struct _Publisher {
+struct _MdnsPublisher {
     AvahiGLibPoll *glib_poll;
     AvahiClient *client;
 
@@ -23,14 +23,14 @@ static void service_free(Service *service);
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(Service, service_free);
 
 struct _Service {
-    Publisher *publisher;
+    MdnsPublisher *publisher;
     char *path;
     char *name;
     AvahiEntryGroup *group;
 };
 
 static Service *
-service_new(Publisher *publisher, const char *path, const char *name) {
+service_new(MdnsPublisher *publisher, const char *path, const char *name) {
     g_autoptr(Service) service = g_new0(Service, 1);
 
     service->publisher = publisher;
@@ -143,7 +143,7 @@ entry_group_callback(AvahiEntryGroup *g, AvahiEntryGroupState state,
 }
 
 static void
-publisher_register_services(Publisher *publisher) {
+publisher_register_services(MdnsPublisher *publisher) {
     GHashTableIter iter;
     Service *service;
 
@@ -154,7 +154,7 @@ publisher_register_services(Publisher *publisher) {
 }
 
 static void
-publisher_reset_services(Publisher *publisher) {
+publisher_reset_services(MdnsPublisher *publisher) {
     GHashTableIter iter;
     Service *service;
 
@@ -166,7 +166,7 @@ publisher_reset_services(Publisher *publisher) {
 
 static void
 client_callback(AvahiClient *client, AvahiClientState state, void *user_data) {
-    Publisher *publisher = user_data;
+    MdnsPublisher *publisher = user_data;
 
     switch (state) {
     case AVAHI_CLIENT_S_RUNNING:
@@ -192,9 +192,9 @@ client_callback(AvahiClient *client, AvahiClientState state, void *user_data) {
     }
 }
 
-Publisher *
-publisher_new(int port, GError **error) {
-    g_autoptr(Publisher) publisher = g_new0(Publisher, 1);
+MdnsPublisher *
+mdns_publisher_new(int port, GError **error) {
+    g_autoptr(MdnsPublisher) publisher = g_new0(MdnsPublisher, 1);
     int avahi_error = 0;
 
     avahi_set_allocator(avahi_glib_allocator());
@@ -221,7 +221,7 @@ publisher_new(int port, GError **error) {
 }
 
 void
-publisher_free(Publisher *publisher) {
+mdns_publisher_free(MdnsPublisher *publisher) {
     if (publisher == NULL) return;
 
     g_clear_pointer(&publisher->services, g_hash_table_destroy);
@@ -231,7 +231,7 @@ publisher_free(Publisher *publisher) {
 }
 
 void
-publisher_add_stream(Publisher *publisher, const char *path, const char *name) {
+mdns_publisher_add_stream(MdnsPublisher *publisher, const char *path, const char *name) {
     Service *service = NULL;
 
     if (g_hash_table_lookup(publisher->services, path)) {

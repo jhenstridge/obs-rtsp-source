@@ -2,14 +2,14 @@
 
 #include <glib.h>
 
-typedef struct _Publisher Publisher;
+typedef struct _MdnsPublisher MdnsPublisher;
 
-Publisher *publisher_new(int port, GError **error);
+MdnsPublisher *mdns_publisher_new(int port, GError **error);
 
-void publisher_free(Publisher *publisher);
+void mdns_publisher_free(MdnsPublisher *publisher);
 
-void publisher_add_stream(Publisher *publisher,
-                          const char *path,
-                          const char *name);
+void mdns_publisher_add_stream(MdnsPublisher *publisher,
+                               const char *path,
+                               const char *name);
 
-G_DEFINE_AUTOPTR_CLEANUP_FUNC(Publisher, publisher_free);
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(MdnsPublisher, mdns_publisher_free);
