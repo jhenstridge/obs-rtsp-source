@@ -71,6 +71,35 @@ setup_streams(GstRTSPServer *server, MdnsPublisher *publisher,
     return TRUE;
 }
 
+static GstRTSPStatusCode
+client_set_parameter(GstRTSPClient *client, GstRTSPContext *ctx,
+                     void *user_data) {
+    static const char param_prefix[] = "obs-active: ";
+    const guint param_prefix_len = sizeof(param_prefix) - 1;
+    const char *uri;
+    guint8 *body;
+    guint size;
+    gboolean active;
+
+    uri = ctx->request->type_data.request.uri;
+    gst_rtsp_message_get_body(ctx->request, &body, &size);
+
+    g_message("body == %s", body);
+    if (!(size > param_prefix_len && !strncmp((const char *)body, param_prefix, param_prefix_len))) {
+        return GST_RTSP_STS_OK;
+    }
+
+    active = !strncmp("true", (const char *)body+param_prefix_len, size-param_prefix_len);
+    g_message("Stream '%s' is %s", uri, active ? "active" : "inactive");
+
+    // We zero out the request body to trigger the code path that will
+    // send a "200 OK" response.  More details in this bug report:
+    // https://gitlab.freedesktop.org/gstreamer/gst-rtsp-server/-/issues/134
+    gst_rtsp_message_set_body(ctx->request, NULL, 0);
+    return GST_RTSP_STS_OK;
+}
+
+
 static void
 client_closed(GstRTSPClient *client) {
     GstRTSPConnection *conn = gst_rtsp_client_get_connection(client);
@@ -82,6 +111,7 @@ static void
 client_connected(GstRTSPServer *server, GstRTSPClient *client) {
     GstRTSPConnection *conn = gst_rtsp_client_get_connection(client);
 
+    g_signal_connect(client, "pre-set-parameter-request", G_CALLBACK(client_set_parameter), NULL);
     g_signal_connect(client, "closed", G_CALLBACK(client_closed), NULL);
     g_message("Received connection from %s", gst_rtsp_connection_get_ip(conn));
 }
