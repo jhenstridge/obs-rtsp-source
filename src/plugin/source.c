@@ -2,8 +2,10 @@
 #include <glib.h>
 
 #include "mdns-browse.h"
+#include "active-notify.h"
 
 extern MdnsBrowser *mdns_browser;
+extern ActiveNotify *active_notify;
 
 struct remote_source {
     obs_source_t *source;
@@ -153,7 +155,9 @@ static void
 remote_source_activate(void *user_data) {
     struct remote_source *remote = user_data;
 
-    g_message("remote source activate");
+    if (remote->rtsp_url != NULL) {
+        active_notify_send(active_notify, remote->rtsp_url, TRUE);
+    }
     obs_source_add_active_child(remote->source, remote->media_source);
 }
 
@@ -161,7 +165,9 @@ static void
 remote_source_deactivate(void *user_data) {
     struct remote_source *remote = user_data;
 
-    g_message("remote source deactivate");
+    if (remote->rtsp_url != NULL) {
+        active_notify_send(active_notify, remote->rtsp_url, FALSE);
+    }
     obs_source_remove_active_child(remote->source, remote->media_source);
 }
 
