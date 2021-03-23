@@ -10,7 +10,7 @@
 #define MDNS_ERROR mdns_error_quark()
 G_DEFINE_QUARK(mdns-error-quark, mdns_error);
 
-struct _Browser {
+struct _MdnsBrowser {
     AvahiThreadedPoll *poll;
     AvahiClient *client;
     AvahiServiceBrowser *service_browser;
@@ -27,7 +27,7 @@ resolve_callback(AvahiServiceResolver *r,
                  const AvahiAddress *address, uint16_t port,
                  AvahiStringList *txt, AvahiLookupResultFlags flags,
                  void *user_data) {
-    Browser *browser = user_data;
+    MdnsBrowser *browser = user_data;
 
     switch (event) {
     case AVAHI_RESOLVER_FAILURE:
@@ -63,7 +63,7 @@ browse_callback(AvahiServiceBrowser *b,
                 AvahiBrowserEvent event, const char *name, const char *type,
                 const char *domain, AvahiLookupResultFlags flags,
                 void *user_data) {
-    Browser *browser = user_data;
+    MdnsBrowser *browser = user_data;
 
     switch (event) {
     case AVAHI_BROWSER_FAILURE:
@@ -98,7 +98,7 @@ browse_callback(AvahiServiceBrowser *b,
 
 static void
 client_callback(AvahiClient *c, AvahiClientState state, void *user_data) {
-    Browser *browser = user_data;
+    MdnsBrowser *browser = user_data;
 
     switch (state) {
     case AVAHI_CLIENT_S_RUNNING:
@@ -127,9 +127,9 @@ client_callback(AvahiClient *c, AvahiClientState state, void *user_data) {
     }
 }
 
-Browser *
-browser_new(GError **error) {
-    g_autoptr(Browser) browser = g_new0(Browser, 1);
+MdnsBrowser *
+mdns_browser_new(GError **error) {
+    g_autoptr(MdnsBrowser) browser = g_new0(MdnsBrowser, 1);
     int avahi_error = 0;
 
     browser->services = g_hash_table_new_full(
@@ -154,7 +154,7 @@ browser_new(GError **error) {
 }
 
 void
-browser_free(Browser *browser) {
+mdns_browser_free(MdnsBrowser *browser) {
     if (browser == NULL) return;
 
     if (browser->poll) {
@@ -168,12 +168,12 @@ browser_free(Browser *browser) {
 }
 
 gint
-browser_get_stamp(Browser *browser) {
+mdns_browser_get_stamp(MdnsBrowser *browser) {
     return g_atomic_int_get(&browser->stamp);
 }
 
 char *
-browser_get_uri(Browser *browser, const char *name, gint *stamp) {
+mdns_browser_get_uri(MdnsBrowser *browser, const char *name, gint *stamp) {
     char *rtsp_uri = NULL;
 
     avahi_threaded_poll_lock(browser->poll);
@@ -195,7 +195,7 @@ name_compare(gconstpointer a, gconstpointer b, void *user_data) {
 }
 
 GStrv
-browser_get_available(Browser *browser) {
+mdns_browser_get_available(MdnsBrowser *browser) {
     GStrv names = NULL;
     GHashTableIter iter;
     int i = 0;

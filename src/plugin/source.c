@@ -3,7 +3,7 @@
 
 #include "mdns-browse.h"
 
-extern Browser *mdns_browser;
+extern MdnsBrowser *mdns_browser;
 
 struct remote_source {
     obs_source_t *source;
@@ -68,7 +68,7 @@ remote_source_get_properties(void *user_data) {
         props, "service_name", "Service",
         OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     if (mdns_browser) {
-        g_auto(GStrv) names = browser_get_available(mdns_browser);
+        g_auto(GStrv) names = mdns_browser_get_available(mdns_browser);
         int i;
 
         for (i = 0; names[i] != NULL; i++) {
@@ -125,7 +125,7 @@ remote_source_update(void *user_data, obs_data_t *settings) {
 
     g_clear_pointer(&remote->rtsp_url, g_free);
     if (mdns_browser) {
-        remote->rtsp_url = browser_get_uri(
+        remote->rtsp_url = mdns_browser_get_uri(
             mdns_browser, remote->service_name, &remote->last_stamp);
     }
     g_message("rtsp url for %s is %s", remote->service_name, remote->rtsp_url);
@@ -176,13 +176,13 @@ remote_source_video_tick(void *user_data, float seconds) {
     }
 
     // Perform quick check to see if service browser state has changed
-    new_stamp = browser_get_stamp(mdns_browser);
+    new_stamp = mdns_browser_get_stamp(mdns_browser);
     if (new_stamp == remote->last_stamp) {
         return;
     }
 
     // Is the new URL for our service different?
-    new_url = browser_get_uri(
+    new_url = mdns_browser_get_uri(
         mdns_browser, remote->service_name, &remote->last_stamp);
     if (g_strcmp0(new_url, remote->rtsp_url) != 0) {
         g_clear_pointer(&remote->rtsp_url, g_free);
