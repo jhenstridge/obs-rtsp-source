@@ -1,10 +1,10 @@
 This is a work in progress project intended to make it easy to
-integrate networked cameras into an OBS Studio broadcast with minimal
-configuration.
+integrate networked cameras into an [OBS Studio][1] broadcast with
+minimal configuration.
 
-Having previously used the dvswitch set of tools to do multi-camera
-live mixed video, I wanted to see if I could get a similar model
-working with OBS Studio.
+Having previously used the [dvswitch][2] set of tools to do
+multi-camera live mixed video, I wanted to see if I could get a
+similar model working with OBS Studio.
 
 The project consists of two components: an RTSP server that runs on a
 sender node to share camera streas, and an OBS plugin that provides a
@@ -52,9 +52,9 @@ In theory, you should be able to send raw video using the `rtpvrawpay`
 element, but I couldn't get that to work reliably.
 
 As well as serving the streams via RTSP, the daemon also advertises
-the streams via mDNS (also known as Bonjour) using Avahi.  You can get
-a listing of the cameras available on the local network with the
-following command:
+the streams via [mDNS][3] (also known as Bonjour) using Avahi.  You
+can get a listing of the cameras available on the local network with
+the following command:
 
     avahi-browse -rt _obs-source._sub._rtsp._tcp
 
@@ -80,10 +80,18 @@ This means that you can start OBS without ensuring all the camera
 machines are running.  As each system on the network starts, the
 streams will integrate into the scenes set up in previous sessions.
 
-
 ## Todo
 
-As the OBS plugin also lets us know when the source is "active"
-(i.e. part of the current scene), it could also let us communicate
-this back to the sender.  In turn, that would allow for some kind of
-"tally light" feature.
+I would like to implement some kind of [tally light][4] system.  This
+is partly implemented, with the plugin keeping track of when a source
+becomes active (i.e. part of the scene currently on display), and
+communicating that state back to the associated RTSP server.
+
+Currently the state changes are printed to the log, but it would be
+good to extend this to something the camera operator could see.
+
+
+[1]: https://obsproject.com/
+[2]: https://web.archive.org/web/20180326132702/http://dvswitch.alioth.debian.org/wiki/
+[3]: http://multicastdns.org/
+[4]: https://en.wikipedia.org/wiki/Tally_light
