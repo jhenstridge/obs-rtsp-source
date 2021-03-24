@@ -84,7 +84,6 @@ client_set_parameter(GstRTSPClient *client, GstRTSPContext *ctx,
     uri = ctx->request->type_data.request.uri;
     gst_rtsp_message_get_body(ctx->request, &body, &size);
 
-    g_message("body == %s", body);
     if (!(size > param_prefix_len && !strncmp((const char *)body, param_prefix, param_prefix_len))) {
         return GST_RTSP_STS_OK;
     }
